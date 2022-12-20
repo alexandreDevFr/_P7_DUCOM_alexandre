@@ -1,0 +1,344 @@
+<template>
+    <div class="post">
+      <div class="post_head">
+        <p>{{ post.nom }} {{ post.prenom }} le {{ post.date }}</p>
+      </div>
+      <div class="post_body">
+        <img :src="post.imageUrl" alt="">
+        <p>{{ post.description }}</p>
+      </div>
+      <div class="post_footer">
+        <div class="post_footer_review">
+          <a @click.prevent="Like(post)"><i class="fa-solid fa-thumbs-up like"></i><p> ({{ post.likes }})</p></a>
+        </div>
+        <div v-if="access" class="post_footer_modify">
+          <a v-on:click="() => onModify()">Modifier</a>
+          <a @click.prevent="DelPost(post._id)">Supprimer</a>
+        </div>
+      </div>
+    </div>
+</template>
+
+<script>
+    export default {
+  props: ['onModify', 'post', 'onRefresh', 'access'],
+  data(){
+    return{
+     isNew: false,
+     isModify: false,
+     toModify: 0,
+     posts: [],
+     description: '',
+     image: '',
+     file: '',
+    }
+  },
+  methods: {
+    onToggleUpdate: function(id) {
+      this.toModify = id
+      this.isModify = !this.isModify
+    },
+    NewPost: function () {
+      const userId = JSON.parse(localStorage.getItem("userId"));
+      const token = JSON.parse(localStorage.getItem("token"));
+
+      let formData = new FormData();
+      formData.append('userId', userId);
+      formData.append('post',this.description);
+      formData.append('image',this.file);
+      formData.append('prenom', 'Alex');
+      formData.append('nom', 'alex');
+
+      fetch('http://localhost:3000/api/posts', {
+        method: 'POST',
+        headers: { 
+            'Authorization': `Bearer ${token}`,
+            // 'Content-Type': 'multipart/form-data',
+        },
+        body: formData
+      })
+      .then(response => {
+        response.json()
+        this.$router.go()
+      })
+      .catch(error => console.log(error))
+    },
+    DelPost: function (_id) {
+      fetch('http://localhost:3000/api/posts')
+      .then(res => res.json())
+      .then(data => {
+        this.posts = data
+      })
+      .catch(err => console.log(err.message))
+      const userId = JSON.parse(localStorage.getItem("userId"));
+      const token = JSON.parse(localStorage.getItem("token"));
+      fetch('http://localhost:3000/api/posts/'+ `${_id}`, {
+        method: 'DELETE',
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + `${token}`
+        },
+        body: JSON.stringify(
+          {
+            userId: userId,
+          })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log(data)
+        this.onRefresh()
+      })
+      .catch(error => console.log(error))
+    },
+    Like: function(post) {
+
+      const userId = JSON.parse(localStorage.getItem("userId"));
+      const token = JSON.parse(localStorage.getItem("token"));
+      const postId = post._id;
+      const postusersLiked = JSON.stringify(post.usersLiked);
+
+        fetch('http://localhost:3000/api/posts/'+ `${postId}` + '/like', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + `${token}`,
+            'Accept': 'application/json; charset=utf-8',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(
+          {
+            userId: userId,
+            like : postusersLiked.includes(userId) ? -1 : 1,
+          })
+      })
+      .then(response => response.json())
+      .then(data => {
+        this.onRefresh()
+        console.log(data)
+      })
+      .catch(error => console.log(error));
+    },
+    onFileChange: function( event ){
+      this.file = event.target.files[0];
+    },
+  },
+  mounted(){
+    this.onRefresh()
+  },
+}
+</script>
+
+
+<style scoped>
+
+.container{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 50px;
+}
+.post{
+  display: flex;
+  flex-direction: column;
+  width: 500px;
+  margin-bottom: 50px;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+
+.post_head{
+  background-color: #4E5166 ;
+}
+
+.post_head p{
+  color: white;
+  padding: 8px;
+  padding-left: 24px;
+}
+
+.post_body{
+  padding: 8px;
+  padding-left: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.post_body img{
+  width: 400px;
+}
+
+.post_body p{
+  font-size: 16px;
+}
+
+.post_footer{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  padding-left: 24px;
+}
+
+.post_footer_review{
+  display: flex;
+}
+
+.post_footer_review a{
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.post_footer_review i{
+  font-size: 22px;
+}
+
+.post_footer_modify a{
+  text-decoration: underline;
+}
+
+.like{
+  color: #FFD7D7;
+}
+
+.post_footer{
+  color: #FD2D01;
+  font-size: 18px;
+}
+
+.post_footer p{
+  padding: 6px;
+}
+
+.post_footer a{
+  color: #FD2D01;
+  padding: 6px;
+}
+
+.post_admin{
+  display: flex;
+  flex-direction: column;
+  width: 500px;
+  margin-bottom: 50px;
+   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+
+.post_head_admin{
+  background-color: #FFD7D7 ;
+  display: flex;
+  justify-content: space-between;
+}
+
+.post_head_admin p{
+  color: #FD2D01;
+  padding: 8px;
+  padding-left: 24px;
+}
+
+.post_head_admin .badge p{
+  background-color: #fff;
+  padding: 0;
+  margin-top: 8px;
+  margin-right: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.new_modal{
+  display: flex;
+  flex-direction: column;
+  width: 500px;
+  margin-bottom: 120px;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  margin-right: 40px;
+  background-color: #fff;
+}
+
+.new_modal_box_head{
+  background-color: #4E5166 ;
+  display: flex;
+  justify-content: space-between;
+}
+
+.new_modal_box_head p{
+  padding: 8px;
+  padding-left: 24px;
+  color: white;;
+}
+
+.new_modal_box__body{
+  padding: 8px;
+  margin-left: 36px;
+  margin-right: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start
+}
+
+.new_modal_box__body input{
+  width: 100%;
+  padding-bottom: 140px;
+  padding-top: 20px;
+  padding-left: 20px;
+}
+
+.new_modal_box_body_image input{
+  padding: 0;
+}
+
+.new_modal_box_footer{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 8px;
+  padding-left: 24px;
+}
+
+.new_modal_box_footer button{
+    background-color: #FD2D01;
+    border: 0;
+    padding: 6px;
+    margin-right: 36px;
+    margin-bottom: 24px;
+}
+
+.new_modal_box_footer a{
+    color: white;
+    text-transform: uppercase;
+    font-size: 14px;
+    padding-left: 20px;
+    padding-right: 20px;
+    text-decoration: none;
+}
+
+.new{
+  height: 64px;
+  width: 64px;
+  font-size: 64px;
+  background-color: #FD2D01;
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  border-radius: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  margin-right: 40px;
+  cursor: pointer;
+}
+
+.new a{
+  color: #fff;
+  margin-top: -10px;
+  text-decoration: none;
+}
+
+
+
+
+
+</style>

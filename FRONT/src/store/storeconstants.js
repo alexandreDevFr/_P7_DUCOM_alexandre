@@ -1,0 +1,1 @@
+export const IS_USER_AUTHENTICATE_GETTER = '[getters] is user authenticated'
